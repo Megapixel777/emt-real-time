@@ -1,4 +1,4 @@
-name: Tests
+name: CI
 
 on:
   push:
@@ -10,6 +10,7 @@ on:
 
 jobs:
   test:
+    name: Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -26,6 +27,15 @@ jobs:
 
       - name: Run tests
         run: pytest -v
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Build Docker image
         run: docker build -t emt-real-time-api .
