@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+.env
+
+# Android / Gradle
+.gradle/
+**/build/
+local.properties
+*.iml
+
+# Android Studio
+.idea/
+.externalNativeBuild/
+.cxx/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+*.egg-info/
