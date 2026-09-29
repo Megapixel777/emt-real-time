@@ -306,14 +306,20 @@ class MainActivity : ComponentActivity() {
                             text = "Actualizando llegadas..."
                         )
 
-                    } else if (errorMessage.isNotEmpty() && filteredArrivals.isEmpty()) {
-
-                        Text(
-                            text = errorMessage,
-                            color = MaterialTheme.colorScheme.error
-                        )
-
                     } else {
+
+                        if (errorMessage.isNotEmpty()) {
+
+                            Text(
+                                text = "⚠ Sin conexión · mostrando los últimos datos disponibles",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+
+                            Spacer(
+                                modifier = Modifier.height(8.dp)
+                            )
+                        }
 
                         LazyColumn(
                             modifier = Modifier.fillMaxSize()
@@ -346,14 +352,14 @@ class MainActivity : ComponentActivity() {
 
             loading = true
 
-            errorMessage = ""
-
             try {
 
                 val result = RetrofitClient.api
                     .getArrivals(stop)
 
                 arrivals = result
+
+                errorMessage = ""
 
                 lastUpdate = SimpleDateFormat(
                     "HH:mm:ss",
@@ -363,7 +369,7 @@ class MainActivity : ComponentActivity() {
             } catch (exception: Exception) {
 
                 errorMessage =
-                    "No se pudieron obtener las llegadas: ${exception.message}"
+                    "No se pudo actualizar. Mostrando los últimos datos disponibles."
 
             } finally {
 
