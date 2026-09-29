@@ -46,3 +46,21 @@ jobs:
         with:
           workload_identity_provider: projects/222674024026/locations/global/workloadIdentityPools/github-actions/providers/github
           service_account: github-actions-deploy@emt-real-time-2026.iam.gserviceaccount.com
+
+      - name: Set up Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Configure Docker authentication
+        run: |
+          gcloud auth configure-docker europe-southwest1-docker.pkg.dev --quiet
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t europe-southwest1-docker.pkg.dev/emt-real-time-2026/emt-real-time/emt-real-time-api:${{ github.sha }} \
+            .
+
+      - name: Push Docker image
+        run: |
+          docker push \
+            europe-southwest1-docker.pkg.dev/emt-real-time-2026/emt-real-time/emt-real-time-api:${{ github.sha }}
