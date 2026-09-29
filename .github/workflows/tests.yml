@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   test:
     name: Tests
@@ -35,7 +39,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Build Docker image
-        run: docker build -t emt-real-time-api .
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/222674024026/locations/global/workloadIdentityPools/github-actions/providers/github
+          service_account: github-actions-deploy@emt-real-time-2026.iam.gserviceaccount.com
