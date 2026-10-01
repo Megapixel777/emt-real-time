@@ -1,0 +1,29 @@
+name: Stop Cloud Run
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  stop:
+    name: Delete Cloud Run service
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/222674024026/locations/global/workloadIdentityPools/github-actions/providers/github
+          service_account: github-actions-deploy@emt-real-time-2026.iam.gserviceaccount.com
+
+      - name: Set up Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Delete Cloud Run service
+        run: |
+          gcloud run services delete emt-real-time-api \
+            --region=europe-southwest1 \
+            --quiet
