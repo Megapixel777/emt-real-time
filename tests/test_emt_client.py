@@ -1,7 +1,8 @@
 from unittest.mock import Mock, patch
 
-from emt_realtime.emt_client import EMTClient
+import requests
 
+from emt_realtime.emt_client import EMTClient
 
 def test_login_returns_access_token():
     client = EMTClient(
@@ -37,6 +38,9 @@ def test_login_raises_error_on_403():
 
     mock_response = Mock()
     mock_response.status_code = 403
+    mock_response.raise_for_status.side_effect = requests.HTTPError(
+        "403 Client Error: Forbidden"
+    )
 
     with patch(
         "emt_realtime.emt_client.requests.get",
@@ -44,9 +48,12 @@ def test_login_raises_error_on_403():
     ):
         try:
             client.login()
-            assert False, "Expected RuntimeError"
-        except RuntimeError as exc:
-            assert "HTTP 403" in str(exc)
+        except requests.HTTPError:
+            pass
+        else:
+            raise AssertionError(
+                "client.login() debería lanzar HTTPError con un 403"
+            )
 
 
 def test_get_arrivals_uses_existing_token():
