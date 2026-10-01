@@ -31,3 +31,4 @@ jobs:
             --image=europe-southwest1-docker.pkg.dev/emt-real-time-2026/emt-real-time/emt-real-time-api:${{ github.sha }} \
             --region=europe-southwest1 \
             --platform=managed
+            --allow-unauthenticated
