@@ -31,4 +31,5 @@ jobs:
             --image=europe-southwest1-docker.pkg.dev/emt-real-time-2026/emt-real-time/emt-real-time-api:${{ github.sha }} \
             --region=europe-southwest1 \
             --platform=managed \
-            --allow-unauthenticated
+            --allow-unauthenticated \
+            --update-secrets=EMT_CLIENT_ID=EMT_CLIENT_ID:1,EMT_PASSKEY=EMT_PASSKEY:1
