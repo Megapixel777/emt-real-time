@@ -1,6 +1,8 @@
 package com.tomasperez.emtrealtime.storage
 
 import android.content.Context
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.tomasperez.emtrealtime.data.Favorite
 
 class FavoriteStorage(
@@ -13,32 +15,127 @@ class FavoriteStorage(
             Context.MODE_PRIVATE
         )
 
-    fun saveFavorite(favorite: Favorite) {
+    private val gson = Gson()
+
+    private val favoritesKey = "favorites"
+
+
+    // ==================================================
+    // OBTENER TODOS LOS FAVORITOS
+    // ==================================================
+
+    fun getFavorites(): List<Favorite> {
+
+        val json =
+            preferences.getString(
+                favoritesKey,
+                null
+            )
+                ?: return emptyList()
+
+        return try {
+
+            val type =
+                object : TypeToken<List<Favorite>>() {}.type
+
+            gson.fromJson(
+                json,
+                type
+            ) ?: emptyList()
+
+        } catch (e: Exception) {
+
+            emptyList()
+        }
+    }
+
+
+    // ==================================================
+    // GUARDAR FAVORITO
+    // ==================================================
+
+    fun saveFavorite(
+        favorite: Favorite
+    ) {
+
+        val favorites =
+            getFavorites().toMutableList()
+
+
+        // Evitar duplicados de la misma
+        // parada + línea
+
+        val alreadyExists =
+            favorites.any {
+
+                it.stopId == favorite.stopId &&
+                        it.line.equals(
+                            favorite.line,
+                            ignoreCase = true
+                        )
+            }
+
+
+        if (!alreadyExists) {
+
+            favorites.add(favorite)
+
+            saveFavorites(favorites)
+        }
+    }
+
+
+    // ==================================================
+    // ELIMINAR FAVORITO
+    // ==================================================
+
+    fun deleteFavorite(
+        favorite: Favorite
+    ) {
+
+        val favorites =
+            getFavorites()
+                .filterNot {
+
+                    it.stopId == favorite.stopId &&
+                            it.line.equals(
+                                favorite.line,
+                                ignoreCase = true
+                            )
+                }
+
+        saveFavorites(favorites)
+    }
+
+
+    // ==================================================
+    // GUARDAR LISTA COMPLETA
+    // ==================================================
+
+    private fun saveFavorites(
+        favorites: List<Favorite>
+    ) {
+
+        val json =
+            gson.toJson(favorites)
 
         preferences.edit()
-            .putInt("stop_id", favorite.stopId)
-            .putString("line", favorite.line)
-            .putString("destination", favorite.destination)
+            .putString(
+                favoritesKey,
+                json
+            )
             .apply()
     }
 
-    fun getFavorite(): Favorite? {
 
-        if (!preferences.contains("stop_id")) {
-            return null
-        }
+    // ==================================================
+    // BORRAR TODOS
+    // ==================================================
 
-        return Favorite(
-            stopId = preferences.getInt("stop_id", 0),
-            line = preferences.getString("line", "") ?: "",
-            destination = preferences.getString("destination", "") ?: ""
-        )
-    }
-
-    fun deleteFavorite() {
+    fun deleteAllFavorites() {
 
         preferences.edit()
-            .clear()
+            .remove(favoritesKey)
             .apply()
     }
 }
