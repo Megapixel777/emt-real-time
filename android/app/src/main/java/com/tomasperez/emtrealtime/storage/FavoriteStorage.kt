@@ -1,9 +1,12 @@
 package com.tomasperez.emtrealtime.storage
 
 import android.content.Context
+
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+
 import com.tomasperez.emtrealtime.data.Favorite
+
 
 class FavoriteStorage(
     context: Context
@@ -15,9 +18,11 @@ class FavoriteStorage(
             Context.MODE_PRIVATE
         )
 
-    private val gson = Gson()
+    private val gson =
+        Gson()
 
-    private val favoritesKey = "favorites"
+    private val favoritesKey =
+        "favorites"
 
 
     // ==================================================
@@ -36,12 +41,16 @@ class FavoriteStorage(
         return try {
 
             val type =
-                object : TypeToken<List<Favorite>>() {}.type
+                object :
+                    TypeToken<List<Favorite>>() {}.type
 
-            gson.fromJson(
-                json,
-                type
-            ) ?: emptyList()
+            val favorites =
+                gson.fromJson<List<Favorite>>(
+                    json,
+                    type
+                ) ?: emptyList()
+
+            favorites
 
         } catch (e: Exception) {
 
@@ -61,7 +70,6 @@ class FavoriteStorage(
         val favorites =
             getFavorites().toMutableList()
 
-
         // Evitar duplicados de la misma
         // parada + línea
 
@@ -75,13 +83,51 @@ class FavoriteStorage(
                         )
             }
 
-
         if (!alreadyExists) {
 
-            favorites.add(favorite)
+            favorites.add(
+                favorite
+            )
 
-            saveFavorites(favorites)
+            saveFavorites(
+                favorites
+            )
         }
+    }
+
+
+    // ==================================================
+    // ACTUALIZAR FAVORITO
+    // ==================================================
+
+    fun updateFavorite(
+        updatedFavorite: Favorite
+    ) {
+
+        val favorites =
+            getFavorites()
+                .map { favorite ->
+
+                    if (
+                        favorite.stopId ==
+                        updatedFavorite.stopId &&
+                        favorite.line.equals(
+                            updatedFavorite.line,
+                            ignoreCase = true
+                        )
+                    ) {
+
+                        updatedFavorite
+
+                    } else {
+
+                        favorite
+                    }
+                }
+
+        saveFavorites(
+            favorites
+        )
     }
 
 
@@ -97,14 +143,17 @@ class FavoriteStorage(
             getFavorites()
                 .filterNot {
 
-                    it.stopId == favorite.stopId &&
+                    it.stopId ==
+                            favorite.stopId &&
                             it.line.equals(
                                 favorite.line,
                                 ignoreCase = true
                             )
                 }
 
-        saveFavorites(favorites)
+        saveFavorites(
+            favorites
+        )
     }
 
 
@@ -117,7 +166,9 @@ class FavoriteStorage(
     ) {
 
         val json =
-            gson.toJson(favorites)
+            gson.toJson(
+                favorites
+            )
 
         preferences.edit()
             .putString(
@@ -135,7 +186,9 @@ class FavoriteStorage(
     fun deleteAllFavorites() {
 
         preferences.edit()
-            .remove(favoritesKey)
+            .remove(
+                favoritesKey
+            )
             .apply()
     }
 }

@@ -33,3 +33,4 @@ Thumbs.db
 *.tfstate.*
 crash.log
 crash.*.log
+credentials/

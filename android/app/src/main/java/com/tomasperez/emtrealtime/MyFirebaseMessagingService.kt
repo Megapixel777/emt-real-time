@@ -31,6 +31,11 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
 
+        println("🔥 FCM MESSAGE RECEIVED")
+        println("🔥 FROM: ${message.from}")
+        println("🔥 DATA: ${message.data}")
+        println("🔥 NOTIFICATION: ${message.notification}")
+
         val title = message.notification?.title
             ?: message.data["title"]
             ?: "EMT Real-Time"

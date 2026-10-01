@@ -22,32 +22,31 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.OutlinedTextField
-
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 
 import com.google.firebase.messaging.FirebaseMessaging
-
 import com.tomasperez.emtrealtime.data.BusArrival
 import com.tomasperez.emtrealtime.data.Favorite
+import com.tomasperez.emtrealtime.network.RetrofitClient
 import com.tomasperez.emtrealtime.storage.FavoriteStorage
 import com.tomasperez.emtrealtime.ui.theme.EMTRealTimeTheme
 
@@ -76,7 +75,9 @@ class MainActivity : ComponentActivity() {
     // LLEGADAS DE LA BÚSQUEDA PRINCIPAL
     // ==================================================
 
-    private var arrivals by mutableStateOf<List<BusArrival>>(emptyList())
+    private var arrivals by mutableStateOf<List<BusArrival>>(
+        emptyList()
+    )
 
     private var errorMessage by mutableStateOf("")
 
@@ -91,26 +92,48 @@ class MainActivity : ComponentActivity() {
     // FIREBASE
     // ==================================================
 
-    private var fcmToken by mutableStateOf("Obteniendo token...")
+    private var fcmToken by mutableStateOf(
+        "Obteniendo token..."
+    )
+
+
+    // ==================================================
+    // NOTIFICACIONES
+    // ==================================================
+
+    private lateinit var notificationHelper: NotificationHelper
 
 
     // ==================================================
     // FAVORITOS
     // ==================================================
 
-    private var favorites by mutableStateOf<List<Favorite>>(emptyList())
+    private var favorites by mutableStateOf<List<Favorite>>(
+        emptyList()
+    )
 
-    /*
-     * Guardamos las llegadas de cada favorito.
-     *
-     * La clave es el Favorite y el valor es la lista
-     * de autobuses que están llegando a esa parada/línea.
-     */
     private var favoriteArrivals by mutableStateOf(
         emptyMap<Favorite, List<BusArrival>>()
     )
 
     private lateinit var favoriteStorage: FavoriteStorage
+
+
+    // ==================================================
+    // CONTROL DE NOTIFICACIONES
+    // ==================================================
+
+    /*
+     * Guarda los favoritos que ya han generado
+     * una notificación para la llegada actual.
+     *
+     * Ejemplo:
+     *
+     * 1503-49
+     * 1503-42
+     */
+    private val notifiedFavorites =
+        mutableSetOf<String>()
 
 
     // ==================================================
@@ -127,7 +150,9 @@ class MainActivity : ComponentActivity() {
     // ON CREATE
     // ==================================================
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(
+        savedInstanceState: Bundle?
+    ) {
 
         super.onCreate(savedInstanceState)
 
@@ -138,16 +163,26 @@ class MainActivity : ComponentActivity() {
         // FAVORITOS
         // ==================================================
 
-        favoriteStorage = FavoriteStorage(this)
+        favoriteStorage =
+            FavoriteStorage(this)
 
-        favorites = favoriteStorage.getFavorites()
+        favorites =
+            favoriteStorage.getFavorites()
 
 
         // ==================================================
         // NOTIFICACIONES
         // ==================================================
 
+        notificationHelper =
+            NotificationHelper(this)
+
         requestNotificationPermission()
+
+
+        // ==================================================
+        // FIREBASE
+        // ==================================================
 
         getFcmToken()
 
@@ -161,11 +196,11 @@ class MainActivity : ComponentActivity() {
             EMTRealTimeTheme {
 
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(20.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(20.dp)
                 ) {
-
 
                     // ==================================================
                     // CABECERA
@@ -173,12 +208,17 @@ class MainActivity : ComponentActivity() {
 
                     Text(
                         text = "EMT Real-Time",
-                        style = MaterialTheme.typography.headlineMedium
+
+                        style =
+                            MaterialTheme
+                                .typography
+                                .headlineMedium
                     )
 
 
                     Spacer(
-                        modifier = Modifier.height(12.dp)
+                        modifier =
+                            Modifier.height(12.dp)
                     )
 
 
@@ -194,17 +234,21 @@ class MainActivity : ComponentActivity() {
                         },
 
                         label = {
-                            Text("Número de parada")
+                            Text(
+                                "Número de parada"
+                            )
                         },
 
                         singleLine = true,
 
-                        modifier = Modifier.fillMaxWidth()
+                        modifier =
+                            Modifier.fillMaxWidth()
                     )
 
 
                     Spacer(
-                        modifier = Modifier.height(8.dp)
+                        modifier =
+                            Modifier.height(8.dp)
                     )
 
 
@@ -220,21 +264,27 @@ class MainActivity : ComponentActivity() {
                         },
 
                         label = {
-                            Text("Línea (opcional)")
+                            Text(
+                                "Línea (opcional)"
+                            )
                         },
 
                         placeholder = {
-                            Text("Ejemplo: 27")
+                            Text(
+                                "Ejemplo: 27"
+                            )
                         },
 
                         singleLine = true,
 
-                        modifier = Modifier.fillMaxWidth()
+                        modifier =
+                            Modifier.fillMaxWidth()
                     )
 
 
                     Spacer(
-                        modifier = Modifier.height(8.dp)
+                        modifier =
+                            Modifier.height(8.dp)
                     )
 
 
@@ -248,12 +298,15 @@ class MainActivity : ComponentActivity() {
                             val newStop =
                                 stopInput.toIntOrNull()
 
-
                             if (newStop != null) {
 
-                                stopId = newStop
+                                stopId =
+                                    newStop
 
-                                loadArrivals(newStop)
+                                loadArrivals(
+                                    newStop
+                                )
+
                                 loadAllFavoriteArrivals()
 
                             } else {
@@ -263,15 +316,19 @@ class MainActivity : ComponentActivity() {
                             }
                         },
 
-                        modifier = Modifier.fillMaxWidth()
+                        modifier =
+                            Modifier.fillMaxWidth()
                     ) {
 
-                        Text("Buscar")
+                        Text(
+                            "Buscar"
+                        )
                     }
 
 
                     Spacer(
-                        modifier = Modifier.height(12.dp)
+                        modifier =
+                            Modifier.height(12.dp)
                     )
 
 
@@ -283,22 +340,25 @@ class MainActivity : ComponentActivity() {
 
                         Text(
                             text = "⭐ Mis favoritos",
-                            style = MaterialTheme.typography.titleLarge
+
+                            style =
+                                MaterialTheme
+                                    .typography
+                                    .titleLarge
                         )
 
 
                         Spacer(
-                            modifier = Modifier.height(6.dp)
+                            modifier =
+                                Modifier.height(6.dp)
                         )
 
 
-                        /*
-                         * Mostramos todos los favoritos.
-                         */
                         favorites.forEach { favorite ->
 
                             FavoriteCard(
-                                favorite = favorite,
+                                favorite =
+                                    favorite,
 
                                 arrivals =
                                     favoriteArrivals[
@@ -308,7 +368,8 @@ class MainActivity : ComponentActivity() {
                                 onClick = {
 
                                     stopInput =
-                                        favorite.stopId.toString()
+                                        favorite.stopId
+                                            .toString()
 
                                     lineInput =
                                         favorite.line
@@ -319,6 +380,8 @@ class MainActivity : ComponentActivity() {
                                     loadArrivals(
                                         favorite.stopId
                                     )
+
+                                    loadAllFavoriteArrivals()
                                 },
 
                                 onDelete = {
@@ -336,8 +399,49 @@ class MainActivity : ComponentActivity() {
                                         favoriteArrivals
                                             .toMutableMap()
                                             .apply {
-                                                remove(favorite)
+                                                remove(
+                                                    favorite
+                                                )
                                             }
+
+                                    notifiedFavorites.remove(
+                                        favoriteKey(
+                                            favorite
+                                        )
+                                    )
+                                },
+
+                                onNotificationMinutesChange = {
+                                        minutes ->
+
+                                    val updatedFavorite =
+                                        favorite.copy(
+                                            notificationMinutes =
+                                                minutes
+                                        )
+
+                                    favoriteStorage
+                                        .updateFavorite(
+                                            updatedFavorite
+                                        )
+
+                                    favorites =
+                                        favoriteStorage
+                                            .getFavorites()
+
+                                    /*
+                                     * Si se desactivan,
+                                     * eliminamos el estado
+                                     * de aviso.
+                                     */
+                                    if (minutes == null) {
+
+                                        notifiedFavorites.remove(
+                                            favoriteKey(
+                                                favorite
+                                            )
+                                        )
+                                    }
                                 }
                             )
 
@@ -361,10 +465,13 @@ class MainActivity : ComponentActivity() {
                     // ==================================================
 
                     Text(
-                        text = "Parada $stopId",
+                        text =
+                            "Parada $stopId",
 
                         style =
-                            MaterialTheme.typography.titleMedium
+                            MaterialTheme
+                                .typography
+                                .titleMedium
                     )
 
 
@@ -375,7 +482,9 @@ class MainActivity : ComponentActivity() {
                                 "Línea ${lineInput.trim()}",
 
                             style =
-                                MaterialTheme.typography.bodyMedium
+                                MaterialTheme
+                                    .typography
+                                    .bodyMedium
                         )
                     }
 
@@ -393,20 +502,28 @@ class MainActivity : ComponentActivity() {
                     if (loading) {
 
                         Text(
-                            text = "⟳ Actualizando...",
+                            text =
+                                "⟳ Actualizando...",
 
                             style =
-                                MaterialTheme.typography.bodySmall
+                                MaterialTheme
+                                    .typography
+                                    .bodySmall
                         )
 
-                    } else if (lastUpdate.isNotEmpty()) {
+                    } else if (
+                        lastUpdate.isNotEmpty()
+                    ) {
 
                         Text(
                             text =
-                                "● Actualizado hace ${secondsSinceUpdate}s",
+                                "● Actualizado hace " +
+                                        "${secondsSinceUpdate}s",
 
                             style =
-                                MaterialTheme.typography.bodySmall
+                                MaterialTheme
+                                    .typography
+                                    .bodySmall
                         )
                     }
 
@@ -452,9 +569,6 @@ class MainActivity : ComponentActivity() {
                             filteredArrivals.first()
 
 
-                        /*
-                         * Comprobamos si ya existe.
-                         */
                         val alreadyFavorite =
                             favorites.any {
 
@@ -481,7 +595,10 @@ class MainActivity : ComponentActivity() {
                                                 firstArrival.line,
 
                                             destination =
-                                                firstArrival.destination
+                                                firstArrival.destination,
+
+                                            notificationMinutes =
+                                                5
                                         )
 
 
@@ -496,11 +613,6 @@ class MainActivity : ComponentActivity() {
                                             .getFavorites()
 
 
-                                    /*
-                                     * Cargar inmediatamente
-                                     * las llegadas del nuevo
-                                     * favorito.
-                                     */
                                     loadFavoriteArrivals(
                                         newFavorite
                                     )
@@ -540,12 +652,13 @@ class MainActivity : ComponentActivity() {
 
                     } else {
 
-
                         // ==================================================
                         // ERROR
                         // ==================================================
 
-                        if (errorMessage.isNotEmpty()) {
+                        if (
+                            errorMessage.isNotEmpty()
+                        ) {
 
                             Text(
                                 text =
@@ -605,11 +718,13 @@ class MainActivity : ComponentActivity() {
         // PRIMERA CARGA
         // ==================================================
 
-        loadArrivals(stopId)
+        loadArrivals(
+            stopId
+        )
 
 
         // ==================================================
-        // CARGAR LLEGADAS DE FAVORITOS
+        // FAVORITOS
         // ==================================================
 
         loadAllFavoriteArrivals()
@@ -637,7 +752,6 @@ class MainActivity : ComponentActivity() {
 
             loading = true
 
-
             try {
 
                 Log.d(
@@ -649,7 +763,9 @@ class MainActivity : ComponentActivity() {
                 val result =
                     RetrofitClient
                         .api
-                        .getArrivals(stop)
+                        .getArrivals(
+                            stop
+                        )
 
 
                 Log.d(
@@ -664,55 +780,48 @@ class MainActivity : ComponentActivity() {
                 )
 
 
-                Log.d(
-                    "EMT_API",
-                    "4. Datos: $result"
-                )
+                arrivals =
+                    result
 
+                errorMessage =
+                    ""
 
-                arrivals = result
-
-                errorMessage = ""
-
-                secondsSinceUpdate = 0
+                secondsSinceUpdate =
+                    0
 
 
                 lastUpdate =
                     SimpleDateFormat(
                         "HH:mm:ss",
                         Locale.getDefault()
-                    ).format(Date())
+                    ).format(
+                        Date()
+                    )
 
 
             } catch (e: Exception) {
 
                 Log.e(
                     "EMT_API",
-                    "5. ERROR ${e.javaClass.name}: ${e.message}",
+                    "ERROR ${e.javaClass.name}: " +
+                            "${e.message}",
                     e
                 )
-
 
                 errorMessage =
                     "Sin conexión"
 
-
             } finally {
 
-                loading = false
-
-
-                Log.d(
-                    "EMT_API",
-                    "6. loading=false"
-                )
+                loading =
+                    false
             }
         }
     }
 
 
     // ==================================================
-    // CARGAR UN FAVORITO
+    // CARGAR FAVORITO
     // ==================================================
 
     private fun loadFavoriteArrivals(
@@ -738,10 +847,6 @@ class MainActivity : ComponentActivity() {
                         )
 
 
-                /*
-                 * Filtramos únicamente la línea
-                 * correspondiente al favorito.
-                 */
                 val filtered =
                     result
                         .filter {
@@ -757,10 +862,6 @@ class MainActivity : ComponentActivity() {
                         .take(3)
 
 
-                /*
-                 * Actualizamos únicamente
-                 * este favorito.
-                 */
                 favoriteArrivals =
                     favoriteArrivals
                         .toMutableMap()
@@ -771,6 +872,16 @@ class MainActivity : ComponentActivity() {
                                 filtered
                             )
                         }
+
+
+                // ==================================================
+                // COMPROBAR NOTIFICACIÓN
+                // ==================================================
+
+                checkFavoriteNotifications(
+                    favorite,
+                    result
+                )
 
 
                 Log.d(
@@ -787,12 +898,6 @@ class MainActivity : ComponentActivity() {
                     "Error cargando favorito",
                     e
                 )
-
-
-                /*
-                 * Si falla la conexión dejamos
-                 * los datos anteriores.
-                 */
             }
         }
     }
@@ -814,11 +919,140 @@ class MainActivity : ComponentActivity() {
 
 
     // ==================================================
+    // COMPROBAR NOTIFICACIONES
+    // ==================================================
+
+    private fun checkFavoriteNotifications(
+        favorite: Favorite,
+        arrivals: List<BusArrival>
+    ) {
+
+        /*
+         * null = notificaciones desactivadas.
+         */
+        val notificationMinutes =
+            favorite.notificationMinutes
+                ?: return
+
+
+        /*
+         * Autobuses de la línea favorita.
+         */
+        val matchingArrivals =
+            arrivals
+                .filter {
+
+                    it.line.equals(
+                        favorite.line,
+                        ignoreCase = true
+                    )
+                }
+                .sortedBy {
+                    it.minutes
+                }
+
+
+        /*
+         * Buscamos el primero que esté
+         * dentro del umbral.
+         */
+        val arrivalWithinThreshold =
+            matchingArrivals.firstOrNull {
+
+                it.minutes <= notificationMinutes
+            }
+
+
+        /*
+         * Si ya no hay ningún autobús
+         * dentro del umbral, rearmamos
+         * el favorito.
+         */
+        if (
+            arrivalWithinThreshold == null
+        ) {
+
+            notifiedFavorites.remove(
+                favoriteKey(
+                    favorite
+                )
+            )
+
+            return
+        }
+
+
+        /*
+         * Ya hemos avisado.
+         *
+         * No volvemos a avisar cada 30 segundos.
+         */
+        if (
+            notifiedFavorites.contains(
+                favoriteKey(
+                    favorite
+                )
+            )
+        ) {
+
+            return
+        }
+
+
+        /*
+         * Enviar notificación.
+         */
+        notificationHelper
+            .showArrivalNotification(
+
+                line =
+                    favorite.line,
+
+                stopId =
+                    favorite.stopId,
+
+                minutes =
+                    arrivalWithinThreshold.minutes
+            )
+
+
+        /*
+         * Marcar como avisado.
+         */
+        notifiedFavorites.add(
+            favoriteKey(
+                favorite
+            )
+        )
+
+
+        Log.d(
+            "EMT_NOTIFICATION",
+            "Aviso enviado: " +
+                    "línea ${favorite.line}, " +
+                    "parada ${favorite.stopId}, " +
+                    "${arrivalWithinThreshold.minutes} min"
+        )
+    }
+
+
+    // ==================================================
+    // CLAVE FAVORITO
+    // ==================================================
+
+    private fun favoriteKey(
+        favorite: Favorite
+    ): String {
+
+        return "${favorite.stopId}-${favorite.line}"
+    }
+
+
+    // ==================================================
     // ACTUALIZACIÓN AUTOMÁTICA
     // ==================================================
 
     private fun startAutoRefresh() {
-
 
         // ==================================================
         // CONTADOR
@@ -829,7 +1063,6 @@ class MainActivity : ComponentActivity() {
             while (true) {
 
                 delay(1_000)
-
 
                 if (
                     !loading &&
@@ -853,17 +1086,11 @@ class MainActivity : ComponentActivity() {
                 delay(30_000)
 
 
-                /*
-                 * Actualizar búsqueda principal.
-                 */
                 loadArrivals(
                     stopId
                 )
 
 
-                /*
-                 * Actualizar todos los favoritos.
-                 */
                 loadAllFavoriteArrivals()
             }
         }
@@ -883,7 +1110,8 @@ class MainActivity : ComponentActivity() {
             ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED
+            ) !=
+            PackageManager.PERMISSION_GRANTED
         ) {
 
             notificationPermissionLauncher.launch(
@@ -902,14 +1130,12 @@ class MainActivity : ComponentActivity() {
         FirebaseMessaging
             .getInstance()
             .token
-
             .addOnCompleteListener { task ->
 
                 if (task.isSuccessful) {
 
                     fcmToken =
                         task.result
-
 
                     Log.d(
                         "FCM",
@@ -921,11 +1147,9 @@ class MainActivity : ComponentActivity() {
                     fcmToken =
                         "Error obteniendo FCM token"
 
-
                     Log.e(
                         "FCM",
                         "Error obteniendo FCM token",
-
                         task.exception
                     )
                 }
@@ -935,7 +1159,7 @@ class MainActivity : ComponentActivity() {
 
 
 // ======================================================
-// TARJETA DE FAVORITO — COMPACTA
+// TARJETA DE FAVORITO
 // ======================================================
 
 @Composable
@@ -943,12 +1167,21 @@ private fun FavoriteCard(
     favorite: Favorite,
     arrivals: List<BusArrival>,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onNotificationMinutesChange: (Int?) -> Unit
 ) {
 
+    var menuExpanded by remember {
+        mutableStateOf(false)
+    }
+
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onClick
+        modifier =
+            Modifier.fillMaxWidth(),
+
+        onClick =
+            onClick
     ) {
 
         Column(
@@ -960,7 +1193,6 @@ private fun FavoriteCard(
                         vertical = 6.dp
                     )
         ) {
-
 
             // ==================================================
             // CABECERA
@@ -1010,7 +1242,8 @@ private fun FavoriteCard(
                 // ==================================================
 
                 TextButton(
-                    onClick = onDelete
+                    onClick =
+                        onDelete
                 ) {
 
                     Text(
@@ -1021,6 +1254,117 @@ private fun FavoriteCard(
                                 .typography
                                 .bodyMedium
                     )
+                }
+            }
+
+
+            // ==================================================
+            // CONFIGURACIÓN NOTIFICACIONES
+            // ==================================================
+
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Text(
+                    text =
+                        "🔔 Avisar con",
+
+                    style =
+                        MaterialTheme
+                            .typography
+                            .labelMedium
+                )
+
+
+                Spacer(
+                    modifier =
+                        Modifier.width(6.dp)
+                )
+
+
+                TextButton(
+                    onClick = {
+                        menuExpanded = true
+                    }
+                ) {
+
+                    Text(
+                        text =
+                            favorite.notificationMinutes?.let {
+                                "$it min"
+                            } ?: "Desactivadas"
+                    )
+                }
+
+
+                DropdownMenu(
+                    expanded =
+                        menuExpanded,
+
+                    onDismissRequest = {
+                        menuExpanded = false
+                    }
+                ) {
+
+                    // ==================================================
+                    // DESACTIVAR
+                    // ==================================================
+
+                    DropdownMenuItem(
+
+                        text = {
+
+                            Text(
+                                "🔕 Desactivadas"
+                            )
+                        },
+
+                        onClick = {
+
+                            menuExpanded = false
+
+                            onNotificationMinutesChange(
+                                null
+                            )
+                        }
+                    )
+
+
+                    // ==================================================
+                    // MINUTOS
+                    // ==================================================
+
+                    listOf(
+                        1,
+                        3,
+                        5,
+                        10
+                    ).forEach { minutes ->
+
+                        DropdownMenuItem(
+
+                            text = {
+
+                                Text(
+                                    "🔔 $minutes minutos"
+                                )
+                            },
+
+                            onClick = {
+
+                                menuExpanded = false
+
+                                onNotificationMinutesChange(
+                                    minutes
+                                )
+                            }
+                        )
+                    }
                 }
             }
 
@@ -1082,7 +1426,7 @@ private fun FavoriteCard(
 
 
 // ======================================================
-// LLEGADA DENTRO DEL FAVORITO — COMPACTA
+// LLEGADA DENTRO DEL FAVORITO
 // ======================================================
 
 @Composable
@@ -1116,11 +1460,6 @@ private fun FavoriteArrivalRow(
             Alignment.CenterVertically
     ) {
 
-
-        // ==================================================
-        // SEMÁFORO
-        // ==================================================
-
         Canvas(
             modifier =
                 Modifier
@@ -1140,10 +1479,6 @@ private fun FavoriteArrivalRow(
                 Modifier.width(4.dp)
         )
 
-
-        // ==================================================
-        // TIEMPO
-        // ==================================================
 
         Text(
             text =
@@ -1167,10 +1502,6 @@ private fun FavoriteArrivalRow(
         )
 
 
-        // ==================================================
-        // DISTANCIA
-        // ==================================================
-
         Text(
             text =
                 "${arrival.distance_meters} m",
@@ -1187,7 +1518,7 @@ private fun FavoriteArrivalRow(
 
 
 // ======================================================
-// TARJETA PRINCIPAL DE AUTOBÚS
+// TARJETA PRINCIPAL
 // ======================================================
 
 @Composable
@@ -1249,7 +1580,6 @@ private fun ArrivalCard(
             verticalAlignment =
                 Alignment.CenterVertically
         ) {
-
 
             // ==================================================
             // INFORMACIÓN
